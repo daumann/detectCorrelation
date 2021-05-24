@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>dc.js - Heatmap Example</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="css/dc.css"/>
+  <style>
+    .heat-box {
+      stroke: #E6E6E6;
+      stroke-width: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="container" style="width: calc(100% - 48px);">
+  <div id="test"></div>
+
+  <script type="text/javascript" src="js/d3.js"></script>
+  <script type="text/javascript" src="js/crossfilter.js"></script>
+  <script type="text/javascript" src="js/dc.js"></script>
+  <script type="text/javascript" src="js/pcorr.js"></script>
+  <script type="text/javascript" src="js/correlation.js"></script>
+  <script type="text/javascript">
+      var chart = new dc.HeatMap("#test");
+      var experiments;
+      var ndx, runDim, runGroup;
+      var currPolicyIndex = -1;
+      var currIndustryIndex = 0;
+
+      var policyIndexArrayLength;
+      var industryIndexArrayLength;
+      var currIndustryPolicyMap = {}
+
+      Array.prototype.remove = function() {
+          var what, a = arguments, L = a.length, ax;
+          while (L && this.length) {
+              what = a[--L];
+              while ((ax = this.indexOf(what)) !== -1) {
+                  this.splice(ax, 1);
+              }
+          }
+          return this;
+      };
+
+      var pKeys
+      d3.tsv("germany.csv").then(function(experiment) {
+          experiments = experiment
+          pKeys = Object.keys((experiments || {})[0] || {})
+          pKeys.forEach(k => currIndustryPolicyMap[k] = [])
+              // data[k] = experiment.map(e =>
+              //     /** if number **/+e[k])
+          // )
+
+          // make sure experiments is at least key*key rows long
+          // calculate loops
+          var countLoops = Math.round(pKeys.length*pKeys.length/experiments.length)
+          var initialExperiments = experiments
+
+          for(var i = 0; i < countLoops; i++)
+          {
+              experiments = experiments.concat(initialExperiments);
+          }
+
+          ndx    = crossfilter(experiments)
+          // runDim = ndx.dimension(function(d) { console.debug(d);  return [+d.Run, +d.Expt]; })
+
+          currPolicyIndex = -1
+          currIndustryIndex = 0
+
+          policyIndexArrayLength = pKeys.length
+          industryIndexArrayLength = pKeys.length
+
+          var policyGroup = ndx.dimension(function (d, v) {
+              currPolicyIndex++
+              if (currPolicyIndex >= policyIndexArrayLength) {
+                  currPolicyIndex = 0
+                  currIndustryIndex++;
+              }
+              if (currIndustryIndex >= industryIndexArrayLength) {
+                  console.debug(0)
+                  return [pKeys[0], pKeys[0]]
+              }
+              else {
+                  return [pKeys[currPolicyIndex], pKeys[currIndustryIndex]]
+              }
+          });
+
+
+          var policyIndustryGroup = policyGroup.group().reduce((p, v, t) => {
+              Object.keys(v).forEach(f => currIndustryPolicyMap[f].push(+v[f]))
+              // var policyArray = (v["EvidenceBasedPolicy"] || [""]).map(e => e.replace(",",""));
+              // (v.Industry || []).map(industry => industry.replace(";","")).forEach(function(industry, ii) {
+              //     if (industry[0] === " ") industry = industry.substr(1);
+              //     policyArray.forEach(function(policy, pi) {
+              //         if (policy[0] === " ") policy = policy.substr(1);
+              //         var currKey = [industry,policy].join("|")
+              //         if (!((industry === "" && ii > 0) || (policy === "" && pi > 0))) currIndustryPolicyMap[currKey] = (currIndustryPolicyMap[currKey] || 0) + 1;
+              //     });
+              // });
+              return p;
+          }, (p, v) => {
+              Object.keys(v).forEach(f => currIndustryPolicyMap[f].remove(+v[f]))
+              // console.debug(p,v);
+              // var policyArray = (v["EvidenceBasedPolicy"] || [""]).map(e => e.replace(",",""));
+              // (v.Industry || []).map(industry => industry.replace(";","")).forEach(function(industry, ii) {
+              //     if (industry[0] === " ") industry = industry.substr(1);
+              //     policyArray.forEach(function(policy, pi) {
+              //         if (policy[0] === " ") policy = policy.substr(1);
+              //         var currKey = [industry,policy].join("|")
+              //         if (!((industry === "" && ii > 0) || (policy === "" && pi > 0))) currIndustryPolicyMap[currKey] = (currIndustryPolicyMap[currKey] || 0) - 1;
+              //     });
+              // });
+              return p;
+          }, () => ({}))
+
+
+          // runGroup = runDim.group().reduceSum(function(d) { console.debug(d); return +calculateCorrelation([x,y]); });
+
+          var heatColorMapping = d3.scaleLinear()
+              .domain([-1, 0, 1])
+              .range(["red", "#fff", "green"]);
+
+          chart
+              .width(industryIndexArrayLength * 5  * 20 + 80)
+              .height(industryIndexArrayLength * 5 * 5 + 40)
+              .margins({top: 0, right: 30, bottom: 10, left: 500})
+              .dimension(policyGroup)
+              .group(policyIndustryGroup)
+              .keyAccessor(function(d,i) {
+                  return d.key[1];
+              })
+              .valueAccessor(function(d,i) {
+                  return d.key[0];
+              })
+              .colors(heatColorMapping)
+              .rowOrdering(d3.descending)
+              .title(function(d) {
+
+                  return d.key[0] + "\n" +
+                      d.key[1] + "\n" +
+                      "Correlation: " + calculateCorrelation([currIndustryPolicyMap[d.key[0]],currIndustryPolicyMap[d.key[1]]])
+              })
+              .colorAccessor(function(d,i) {
+                  var currPolicy = d.key[0]
+                  var currIndustry = d.key[1]
+
+                  return +calculateCorrelation([currIndustryPolicyMap[currPolicy],currIndustryPolicyMap[currIndustry]]);
+              })
+              // .colsLabel(function(d) { return `test`; })
+
+          chart.on('renderlet.label', function(chart) {
+              var text = chart.selectAll('g.box-group')
+                  .selectAll('text.annotate').data(d => [d]);
+              text.exit().remove();
+              // enter attributes => anything that won't change
+              var textEnter = text.enter()
+                  .append('text')
+                  .attr('class', 'annotate')
+              textEnter.selectAll('tspan')
+                  .data(d => { /*console.debug(d); */return [calculateCorrelation([currIndustryPolicyMap[d.key[0]],currIndustryPolicyMap[d.key[1]]])]})
+          .enter().append('tspan')
+                  .attr('text-anchor', 'middle')
+                  .attr('dy', 10);
+              text = textEnter.merge(text);
+              // update attributes => position and text
+              text
+                  .attr('y', function() {
+                      var rect = d3.select(this.parentNode).select('rect');
+                      return +rect.attr('y') + rect.attr('height')/2 - 5;
+                  });
+              text.selectAll('tspan')
+                  .attr('x', function() {
+                      var rect = d3.select(this.parentNode.parentNode).select('rect');
+                      return +rect.attr('x') + rect.attr('width')/2;
+                  })
+                  .text(d => { return d});
+          })
+
+          chart.on("postRender", function (c) {
+              // d3.selectAll('.cols.axis text').attr('transform', 'translate(100, 100) rotate(45 60 60)')
+              // d3.selectAll('rect.bar').each(addRiskColor);
+              // addImageLabels();
+          });
+
+          chart.render();
+      });
+
+  </script>
+
+</div>
+</body>
+</html>

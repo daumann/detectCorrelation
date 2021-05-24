@@ -1,0 +1,65 @@
+{
+  "_from": "calculate-correlation",
+  "_id": "calculate-correlation@1.2.1",
+  "_inBundle": false,
+  "_integrity": "sha512-nA/4gJ/i1akVCH12deBqZd7aGXy9h2L7F/7Evum/IwpzRQaybe6AoitSzCi8Jc6pwHYZ5s206aZ08zmH1V1StQ==",
+  "_location": "/calculate-correlation",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "calculate-correlation",
+    "name": "calculate-correlation",
+    "escapedName": "calculate-correlation",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/calculate-correlation/-/calculate-correlation-1.2.1.tgz",
+  "_shasum": "ace053773de7ca91f32c868006f107c49cb35464",
+  "_spec": "calculate-correlation",
+  "_where": "/home/daumann/pcode/correlationToCSV",
+  "author": {
+    "name": "Rubén Vara",
+    "email": "hey@rubenvara.io",
+    "url": "https://rubenvara.io"
+  },
+  "bugs": {
+    "url": "https://github.com/rubenvar/calculate-correlation/issues",
+    "email": "hey@rubenvara.io"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "Calculates the correlation coefficient of two arrays. Simple, with no dependencies",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.1.2"
+  },
+  "directories": {
+    "lib": "./lib"
+  },
+  "homepage": "https://github.com/rubenvar/calculate-correlation",
+  "keywords": [
+    "math",
+    "statistics",
+    "correlation",
+    "correlation-coefficient",
+    "pearson-correlation",
+    "arrays"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "calculate-correlation",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rubenvar/calculate-correlation.git"
+  },
+  "scripts": {
+    "test": "mocha --recursive --watch"
+  },
+  "version": "1.2.1"
+}
